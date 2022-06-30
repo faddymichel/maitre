@@ -1,0 +1,21 @@
+{
+  "name": "maitre",
+  "version": "1.0.0",
+  "description": "NodeJS Middleware Server",
+  "author": "Faddy Violette Michel <faddy.michel@gmail.com>",
+  "keywords": [
+    "http",
+    "server",
+    "cli",
+    "experimental"
+  ],
+  "homepage": "https://github.com/faddymichel/maitre",
+  "repository": "github:faddymichel/maitre",
+  "bugs": "https://github.com/faddymichel/maitre/issues",
+  "license": "MIT",
+  "type": "module",
+  "bin": "index.js",
+  "dependencies": {
+    "yargs": "^17.5.1"
+  }
+}
