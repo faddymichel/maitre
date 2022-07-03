@@ -1,70 +1,80 @@
-#!/usr/bin/env node
-
 import http from 'http';
-import yargs from 'yargs/yargs';
-import { hideBin } from 'yargs/helpers';
-import notFoundPage from './notFoundPage.js';
+import notFound from './notFound.js';
 
-const { argv } = yargs ( hideBin ( process.argv ) );
-const server = http .createServer ();
+export default class Maitre extends http .Server {
 
-server .on ( 'request', async ( message, response ) => {
+constructor ( ... parameters ) {
 
-console .log ( '#maitre', '#http', '#request', Date () );
+super ( ... parameters );
 
-const { pathname } = new URL ( message .url, `${ message .headers .protocol }://${ message .headers .host }` );
-const module = process .cwd () + pathname + message .method .toLowerCase () + '.js';
+const maitre = this;
+
+maitre .on ( 'request', async ( order, delivery ) => {
+
+console .log ( '#http', '#request', Date () );
+
 let service;
-
-console .log ( '#maitre', '#import', module );
 
 try {
 
-service = await import ( module );
+service = await maitre .#prepare ( order );
 
 } catch ( error ) {
 
-console .error ( '#error', error .name, error .message );
+console .error ( '#error', error .name, error .message, Date () );
 
-response .statusCode = 404;
-response .statusMessage = 'Not Found';
-
-response .setHeader ( 'content-type', 'text/html' );
-response .setHeader ( 'Content-Length', Buffer .byteLength ( notFoundPage ) );
-
-response .end ( notFoundPage, 'utf8' );
-
-return console .log ( '#response', '#end', Date () );
+service = notFound;
 
 }
 
 if ( typeof service .default === 'function' )
-service = service .default ( message );
+service = service .default ( order );
 
 const { headers, body, encoding, statusCode, statusMessage } = service;
 
 if ( typeof statusCode === 'number' )
-response .statusCode = statusCode;
+delivery .statusCode = statusCode;
 
 if ( typeof statusMessage === 'string' )
-response .statusMessage = statusMessage;
+delivery .statusMessage = statusMessage;
 
 let name, value;
 
 if ( typeof headers === 'object' )
 for ( name of Object .keys ( headers ) )
 if ( typeof name === 'string' && typeof ( value = headers [ name ] ) === 'string' )
-response .setHeader ( name, value );
+delivery .setHeader ( name, value );
 
 if ( typeof body === 'string' || body instanceof Buffer )
-response .end ( body, encoding );
+delivery .end ( body, encoding );
 
-console .log ( '#response', '#end', Date () );
+console .log ( '#delivery', '#end', Date () );
 
 } );
 
-server .on ( 'error', error => console .error ( '#maitre', '#error:', error ) );
+}
 
-const port = typeof argv .port === 'number' ? argv .port : 1313;
+async #prepare ( order ) {
 
-server .listen ( port, () => console .log ( '#maitre', '#listening', '#port', port, Date () ) );
+const { pathname } = new URL ( order .url, `${ order .headers .protocol }://${ order .headers .host }` );
+const location = process .cwd () + pathname + ( pathname .endsWith ( '/' ) ? '' : '/' );
+
+if ( location .includes ( '..' ) )
+throw Error ( "Path to Service Module can't contain '..'" );
+
+console .log ( '#import', location + order .method .toLowerCase () + '.js' );
+
+return import ( location + order .method .toLowerCase () + '.js' )
+.catch ( error => {
+
+console .error ( '#error', error .name, error .message );
+console .log ( '#import', location + 'service.js' );
+
+return import ( location + 'service.js' );
+
+} )
+.then ( service => Object .assign ( { default: service .default }, service [ order .method ] ) );
+
+}
+
+};
