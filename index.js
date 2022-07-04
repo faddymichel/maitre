@@ -8,11 +8,17 @@ constructor ( ... parameters ) {
 super ( ... parameters );
 
 const maitre = this;
+const contrato = import ( process .cwd () + '/maitre.js' ) .catch ( () => {} );
 
-maitre .on ( 'request', async ( order, delivery ) => {
+maitre .on ( 'request', ( ... request ) => maitre .#serve ( ... request, contrato ) );
+
+}
+
+async #serve ( order, delivery, contrato ) {
 
 console .log ( '#http', '#request', Date () );
 
+const maitre = this;
 let service;
 
 try {
@@ -28,11 +34,19 @@ service = notFound;
 }
 
 if ( typeof service .default === 'function' )
-return service = service .default ( order, delivery );
+try {
+
+return service = service .default .call ( await contrato, order, delivery );
+
+} catch ( error ) {
+
+console .error ( '#error', error .name, error .message, Date () );
+
+service = notFound;
+
+}
 
 const { headers, body, encoding, statusCode, statusMessage } = service;
-
-console .log ( body );
 
 if ( typeof statusCode === 'number' )
 delivery .statusCode = statusCode;
@@ -51,8 +65,6 @@ if ( typeof body === 'string' || body instanceof Buffer )
 delivery .end ( body, encoding );
 
 console .log ( '#delivery', '#end', Date () );
-
-} );
 
 }
 

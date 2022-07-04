@@ -1,9 +1,11 @@
-export default ( request, response ) => {
+export default function hello ( request, response ) {
+
+const { default: { greeting, guest } } = this;
 
 response .statusCode = 200;
 response .statusMessage = 'Okay';
 
 response .setHeader ( 'Content-Type', 'text/plain' );
-response .end ( 'Hello World! This is Maitre!', 'utf8' );
+response .end ( `${ greeting } ${ guest }! This is Maitre!`, 'utf8' );
 
 };
