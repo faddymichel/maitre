@@ -28,9 +28,11 @@ service = notFound;
 }
 
 if ( typeof service .default === 'function' )
-service = service .default ( order );
+return service = service .default ( order, delivery );
 
 const { headers, body, encoding, statusCode, statusMessage } = service;
+
+console .log ( body );
 
 if ( typeof statusCode === 'number' )
 delivery .statusCode = statusCode;
@@ -62,18 +64,22 @@ const location = process .cwd () + pathname + ( pathname .endsWith ( '/' ) ? '' 
 if ( location .includes ( '..' ) )
 throw Error ( "Path to Service Module can't contain '..'" );
 
-console .log ( '#import', location + order .method .toLowerCase () + '.js' );
+let path = location + order .method .toLowerCase () + '.js';
 
-return import ( location + order .method .toLowerCase () + '.js' )
+console .log ( '#import', path );
+
+return import ( path )
 .catch ( error => {
 
+path = location .slice ( 0, -1 ) + '.js';
+
 console .error ( '#error', error .name, error .message );
-console .log ( '#import', location + 'service.js' );
+console .log ( '#import', path );
 
-return import ( location + 'service.js' );
-
-} )
+return import ( path )
 .then ( service => Object .assign ( { default: service .default }, service [ order .method ] ) );
+
+} );
 
 }
 
