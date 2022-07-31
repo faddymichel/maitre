@@ -1,45 +1,50 @@
 import book from './responseCodes.js';
-	
-export default Object .defineProperty ( function ( code, ... details ) {
 
-return new MaitreError ( code, ... details );
+export default function MaitreError ( code, ... details ) {
 
-}, 'name', {
+const error = Error ( book [ code = book [ code ] ? code : 500 ] );
 
-value: 'MaitreError',
-configurable: true
+Error .captureStackTrace ( error, MaitreError );
 
-} );
-
-const MaitreError = class MaitreError extends Error {
-
-constructor ( code, ... details ) {
-
-super ( book [ code ] || book [ 500 ] );
-
-const error = this;
+Object .setPrototypeOf ( error, MaitreError .prototype );
 
 Object .defineProperty ( error, 'code', {
 
-value: book [ code ] ? code : 500,
+value: code,
 writable: true,
 configurable: true
 
 } );
 
-}
+Error .call ( error, book [ error .code ] );
+
+return error;
 
 };
 
+Object .defineProperty ( MaitreError, 'prototype', {
+
+value: Object .create ( Error .prototype )
+
+} );
+
 Object .defineProperties ( MaitreError .prototype, {
 
+constructor: {
+
+value: MaitreError,
+writable: true,
+configurable: true
+
+},
 name: {
 
 value: 'MaitreError',
 writable: true,
 configurable: true
 
-}, toString: {
+},
+toString: {
 
 value: function toString () {
 
