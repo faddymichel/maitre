@@ -1,97 +1,90 @@
-import http from 'http';
-import notFound from './notFound.js';
+import { Server } from 'http';
+import IncomingMessage from './request.js';
+import ServerResponse from './response.js';
+import MaitreError from './error.js';
+import dns from 'dns/promises';
 
-export default class Maitre extends http .Server {
+export default class Maitre extends Server {
 
-constructor ( ... parameters ) {
+constructor ( options, ... parameters ) {
 
-super ( ... parameters );
+super ( Object .assign ( {
+
+IncomingMessage, ServerResponse
+
+}, options ), ... parameters );
 
 const maitre = this;
-const contrato = import ( process .cwd () + '/maitre.js' ) .catch ( () => {} );
 
-maitre .on ( 'request', ( ... request ) => maitre .#serve ( ... request, contrato ) );
+maitre .#start ();
+
+maitre .on ( 'listening', async () => {
+
+const { port } = maitre .address ();
+const urls = ( await dns .getServers () ) .map ( address => `http://${ address }:${ port }` );
+
+maitre .emit ( 'info', 'Listening at:\n', urls .join ( '\n' ) );
+
+} );
 
 }
 
-async #serve ( order, delivery, contrato ) {
+async #start () {
 
-console .log ( '#http', '#request', Date () );
+const maitre = this;
+
+maitre .emit ( 'debug', 'Starting' );
+
+try {
+
+const path = process .cwd () + '/.maitre.js';
+
+maitre .emit ( 'debug', `Importing 'contrato' from ${ path }` );
+
+Object .defineProperty ( maitre, 'contrato', {
+
+value: await import ( path ),
+enumerable: true
+
+} );
+
+} catch ( error ) {
+
+maitre .emit ( 'warning', "Couldn't find 'contrato'" );
+
+}
+
+maitre .on ( 'request', ( ... order ) => maitre .#serve ( ... order )
+.catch ( error => {
+
+if ( ! ( error instanceof MaitreError ) ) {
+
+maitre .emit ( 'error', error );
+error = MaitreError ();
+
+}
+
+maitre .emit ( 'unserved', ... order, error );
+
+} ) );
+
+maitre .emit ( 'ready' );
+maitre .emit ( 'debug', 'Ready' );
+
+}
+
+async #serve ( request, response ) {
 
 const maitre = this;
 let service;
 
-try {
+maitre .emit ( 'debug', 'Serving an incoming request' );
 
-service = await maitre .#prepare ( order );
+service = typeof ( service = await request .prepare () ) === 'function' ? await service .default .call ( maitre, request, response ) : service;
 
-} catch ( error ) {
+response .provide ( service );
 
-console .error ( '#error', error .name, error .message, Date () );
-
-service = notFound;
-
-}
-
-if ( typeof service .default === 'function' )
-try {
-
-return service = service .default .call ( await contrato, order, delivery );
-
-} catch ( error ) {
-
-console .error ( '#error', error .name, error .message, Date () );
-
-service = notFound;
-
-}
-
-const { headers, body, encoding, statusCode, statusMessage } = service;
-
-if ( typeof statusCode === 'number' )
-delivery .statusCode = statusCode;
-
-if ( typeof statusMessage === 'string' )
-delivery .statusMessage = statusMessage;
-
-let name, value;
-
-if ( typeof headers === 'object' )
-for ( name of Object .keys ( headers ) )
-if ( typeof name === 'string' && typeof ( value = headers [ name ] ) === 'string' )
-delivery .setHeader ( name, value );
-
-if ( typeof body === 'string' || body instanceof Buffer )
-delivery .end ( body, encoding );
-
-console .log ( '#delivery', '#end', Date () );
-
-}
-
-async #prepare ( order ) {
-
-const { pathname } = new URL ( order .url, `${ order .headers .protocol }://${ order .headers .host }` );
-const location = process .cwd () + pathname + ( pathname .endsWith ( '/' ) ? '' : '/' );
-
-if ( location .includes ( '..' ) )
-throw Error ( "Path to Service Module can't contain '..'" );
-
-let path = location + order .method .toLowerCase () + '.js';
-
-console .log ( '#import', path );
-
-return import ( path )
-.catch ( error => {
-
-path = location .slice ( 0, -1 ) + '.js';
-
-console .error ( '#error', error .name, error .message );
-console .log ( '#import', path );
-
-return import ( path )
-.then ( service => Object .assign ( { default: service .default }, service [ order .method ] ) );
-
-} );
+maitre .emit ( 'debug', 'Service provided successfully' );
 
 }
 
