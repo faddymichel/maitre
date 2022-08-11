@@ -1,6 +1,6 @@
 export default function hello ( request, response ) {
 
-const { default: { greeting, guest } } = this .contrato;
+const { default: { greeting, guest } } = this;
 
 response .statusCode = 200;
 response .statusMessage = 'Okay';

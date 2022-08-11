@@ -7,18 +7,11 @@ import { hideBin } from 'yargs/helpers';
 const { argv } = yargs ( hideBin ( process.argv ) );
 const maitre = new Maitre ();
 
-for ( const level of [
-
-'error',
-'warning',
-'info',
-'debug'
-
-] ) {
+for ( const level of Maitre .logLevel ) {
 
 maitre .on ( level, ( ... details ) => {
 
-const time = new Date ();
+const time = details .pop ();
 
 details .forEach ( ( detail, index ) => {
 
@@ -50,4 +43,4 @@ body: error .toString () + '\n'
 
 const port = typeof argv .port === 'number' ? argv .port : 1313;
 
-maitre .on ( 'ready', () => maitre .listen ( port ) );
+maitre .listen ( port );

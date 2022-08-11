@@ -48,7 +48,7 @@ toString: {
 
 value: function toString () {
 
-return `MaitreError: ${ this .code } ${ this .message }`;
+return `Maitre: ${ this .code } ${ this .message }`;
 
 },
 writable: true,
