@@ -62,8 +62,60 @@ maitre .emit ( 'warning', "Couldn't find 'contrato'" );
 
 }
 
-maitre .on ( 'request', ( request, response ) => maitre .#serve ( request, response )
-.catch ( error => {
+maitre .on (
+
+'request',
+( ... request ) => maitre .#serve ( ... request )
+.catch ( 'unserved', error => maitre .#handle ( error, ... request ) )
+
+);
+
+maitre .on (
+
+'upgrade',
+( ... request ) => maitre .#upgrade ( ... request )
+.catch ( error => maitre .#handle ( 'notUpgraded', error, ... request ) )
+
+);
+
+}
+
+async #serve ( request, response ) {
+
+const maitre = this;
+
+maitre .#log ( request, response );
+maitre .emit ( 'debug', 'Received a new request' );
+
+await response .provide ( await request .prepare ( maitre .contrato ) .service );
+
+}
+
+async #upgrade ( request, socket ) {
+
+const maitre = this;
+
+maitre .#log ( request, socket );
+
+const { service } = await request .wsUpgrade ( maitre .contrato );
+
+if ( typeof service !== 'function' )
+throw MaitreError ( 501 );
+
+socket .write (
+
+`HTTP/${ request .httpVersion } 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: ${ request .wsAccept }
+
+` );
+
+}
+
+#handle ( event, error, ... request ) {
+
+const maitre = this;
 
 if ( ! ( error instanceof MaitreError ) ) {
 
@@ -73,30 +125,17 @@ error = MaitreError ();
 
 }
 
-maitre .emit ( 'unserved', request, response, error );
-
-} ) );
+maitre .emit ( event, error, ... request );
 
 }
 
-async #serve ( request, response ) {
-
-for ( const order of [ request, response ] )
-for ( const level of Maitre .logLevel )
-order .on ( level, ( ... message ) => maitre .emit ( level, ... message ) );
+async #log ( ... request ) {
 
 const maitre = this;
-let service;
 
-maitre .emit ( 'debug', 'Received a new request' );
-
-await response .provide ( await request .prepare ( maitre .contrato ) );
-
-}
-
-emit ( event, ... details ) {
-
-super .emit ( event, ... details, new Date () );
+for ( const order of request )
+for ( const level of Maitre .logLevel )
+order .on ( level, ( ... message ) => maitre .emit ( level, ... message ) );
 
 }
 

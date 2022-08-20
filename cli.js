@@ -11,7 +11,7 @@ for ( const level of Maitre .logLevel ) {
 
 maitre .on ( level, ( ... details ) => {
 
-const time = details .pop ();
+const time = new Date ();
 
 details .forEach ( ( detail, index ) => {
 
@@ -20,15 +20,16 @@ details [ index ] = detail .message;
 
 } );
 
-console .error ();
-console .error ( `#${ level } ${ time .toLocaleDateString () } ${ time .toLocaleTimeString () }` );
-console .error ( 'Maitre:', ... details );
+const stream = level === 'info' ? 'log' : 'error';
+
+console [ stream ] ( `#${ level } ${ time .toLocaleDateString () } ${ time .toLocaleTimeString () }` );
+console [ stream ] ( 'Maitre:', ... details );
 
 } );
 
 }
 
-maitre .on ( 'unserved', ( request, response, error ) => response .provide ( {
+maitre .on ( 'unserved', ( error, request, response ) => response .provide ( {
 
 statusCode: error .code,
 statusMessage: error .statusMessage,
@@ -40,6 +41,14 @@ headers: {
 body: error .toString () + '\n'
 
 } ) );
+
+maitre .on ( 'notUpgraded', ( error, request, socket ) => socket .end (
+
+`HTTP/${ request .httpVersion } ${ error .code } ${ error .statusMessage }
+Content-Type: text/plain
+${ error .toString () }
+
+` ) );
 
 const port = typeof argv .port === 'number' ? argv .port : 1313;
 

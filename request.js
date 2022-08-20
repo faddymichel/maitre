@@ -1,4 +1,5 @@
 import { IncomingMessage } from 'http';
+import { createHash } from 'crypto';
 import MaitreError from './error.js';
 
 export default class Request extends IncomingMessage {
@@ -6,7 +7,7 @@ export default class Request extends IncomingMessage {
 async prepare ( contrato ) {
 
 const request = this;
-const method = request .method .toLowerCase ();
+const method = request .headers .upgrade && request .headers .upgrade .toLowerCase () === 'websocket' ? 'ws' : request .method .toLowerCase ();
 const { pathname } = new URL ( request .url, `${ request .headers .protocol }://${ request .headers .host }` );
 const path = process .cwd () + pathname + ( pathname .endsWith ( '/' ) ? '' : '/' );
 
@@ -92,7 +93,40 @@ enumerable: true
 
 }
 
-} ) .service;
+} );
+
+}
+
+static #wsMagic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+
+async wsUpgrade ( contrato ) {
+
+const request = this;
+let key;
+
+if (
+
+request .httpVersion < '1.1'
+|| request .method !== 'GET'
+|| request .headers .upgrade .toLowerCase () !== 'websocket'
+|| request .headers [ 'sec-websocket-version' ] !== '13'
+|| Buffer .byteLength ( key = request .headers [ 'sec-websocket-key' ], 'base64' ) !== 16
+
+)
+throw MaitreError ( 400 );
+
+await request .prepare ( contrato );
+
+const hash = createHash ( 'sha1' );
+
+hash .update ( key + Request .#wsMagic );
+
+return Object .defineProperty ( request, 'wsAccept', {
+
+value: hash .digest ( 'base64' ),
+enumerable: true
+
+} );
 
 }
 
