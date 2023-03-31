@@ -1,6 +1,6 @@
 {
   "name": "maitre",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "NodeJS Middleware Server",
   "author": "Faddy Violette Michel <faddy.michel@gmail.com>",
   "keywords": [
