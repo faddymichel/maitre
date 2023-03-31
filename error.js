@@ -1,8 +1,8 @@
-import book from './responseCodes.js';
+import status from './status.js';
 
 export default function MaitreError ( code, ... details ) {
 
-const error = Error ( book [ code = book [ code ] ? code : 500 ] );
+const error = Error ( status [ code = status [ code ] ? code : 500 ] );
 
 Error .captureStackTrace ( error, MaitreError );
 
@@ -16,7 +16,7 @@ configurable: true
 
 } );
 
-Error .call ( error, book [ error .code ] );
+Error .call ( error, status [ error .code ] );
 
 return error;
 

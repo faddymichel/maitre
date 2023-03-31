@@ -1,11 +1,37 @@
 #!/usr/bin/env node
 
 import Maitre from './index.js';
-import yargs from 'yargs/yargs';
-import { hideBin } from 'yargs/helpers';
+import Scenarist from '@faddymichel/scenarist';
+import Shell from '@faddymichel/shell';
 
-const { argv } = yargs ( hideBin ( process.argv ) );
-const maitre = new Maitre ();
+const $ = Scenarist ( { script: {
+
+path: './service.js',
+
+[ '$--path' ] ( path, ... scenario ) {
+
+this .path = path;
+
+return $ ( ... scenario );
+
+},
+
+port: 1313,
+
+[ '$--port' ] ( port, ... scenario ) {
+
+this .port = isNaN ( port ) ? this .port : port;
+
+$ ( ... scenario );
+
+},
+
+async $ () {
+
+const { path, port } = this;
+const { default: script } = await import ( `${ process .cwd () }/${ path }` );
+const service = new Shell () [ Symbol .for ( 'shell/interpreter' ) ] ( script );
+const maitre = new Maitre ( { service } );
 
 for ( const level of Maitre .logLevel ) {
 
@@ -28,7 +54,7 @@ console .error ( 'Maitre:', ... details );
 
 }
 
-maitre .on ( 'unserved', ( request, response, error ) => response .provide ( {
+maitre .on ( 'unserved', ( request, response, error ) => maitre .provide ( {
 
 statusCode: error .code,
 statusMessage: error .statusMessage,
@@ -39,8 +65,20 @@ headers: {
 },
 body: error .toString () + '\n'
 
-} ) );
+}, response ) );
 
-const port = typeof argv .port === 'number' ? argv .port : 1313;
+maitre .listen ( parseInt ( port ) );
 
-maitre .listen ( port );
+}
+
+} } );
+
+try {
+
+await $ ( ... process .argv .slice ( 2 ), '' );
+
+} catch ( error ) {
+
+console .error ( error );
+
+}

@@ -16,6 +16,6 @@
   "type": "module",
   "bin": "cli.js",
   "dependencies": {
-    "yargs": "^17.5.1"
+    "@faddymichel/shell": "^1.1.2"
   }
 }
