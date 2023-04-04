@@ -1,5 +1,5 @@
 {
-  "name": "maitre",
+  "name": "@faddymichel/maitre",
   "version": "2.1.0",
   "description": "NodeJS Middleware Server",
   "author": "Faddy Violette Michel <faddy.michel@gmail.com>",
