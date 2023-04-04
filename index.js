@@ -1,4 +1,5 @@
-import { Server } from 'http';
+import { Server, OutgoingMessage } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import MaitreError from './error.js';
 import dns from 'dns/promises';
 import status from './status.js';
@@ -18,10 +19,21 @@ const { service } = options;
 if ( typeof service !== 'function' )
 throw TypeError ( "'options.service' must be a 'function'" );
 
-Object .defineProperty ( maitre, 'service', {
+Object .defineProperties ( maitre, {
+
+service: {
 
 value: service,
 enumerable: true
+
+},
+
+ws: {
+
+value: new WebSocketServer ( { server: maitre } ),
+enumerable: true
+
+}
 
 } );
 
@@ -31,7 +43,8 @@ async #inform () {
 
 const maitre = this;
 const { port } = maitre .address ();
-const URLs = ( await dns .getServers () ) .map ( address => `http://${ address }:${ port }` );
+const URLs = ( await dns .getServers () ) .map ( address => `http://${ address }:${ port }
+ws://${ address }:${ port }` );
 
 maitre .emit ( 'info', 'Listening at:\n', URLs .join ( '\n' ) );
 
@@ -41,52 +54,68 @@ listen ( options ) {
 
 const maitre = this;
 
-maitre .#start ()
+maitre .#listen ()
 .then ( () => super .listen ( options ) )
 .catch ( error => maitre .emit ( 'error', error ) );
 
 }
 
-async #start () {
+async #listen () {
 
 const maitre = this;
 
 maitre .emit ( 'debug', 'Starting' );
 
-maitre .on ( 'request', ( request, response ) => maitre .#serve ( request, response )
-.catch ( error => {
+maitre .on (
 
-if ( ! ( error instanceof MaitreError ) ) {
+'request',
+( request, response ) => maitre .serve ( request, response )
+.catch ( error => maitre .unserve ( request, response, error ) )
 
-maitre .emit ( 'error', error .stack );
+);
 
-error = MaitreError ();
+maitre .ws .on ( 'connection', ( socket, request ) => {
+
+maitre .serve ( request, socket, { method: 'wsOpen' } )
+.catch ( error => maitre .unserve ( request, socket, error )
+
+);
+
+socket .on (
+
+'message',
+( data, isBinary ) => maitre .serve ( request, socket, {
+
+method: 'wsMessage',
+details: { data, isBinary }
+
+} )
+.catch ( error => maitre .unserve ( request, socket, error ) )
+
+);
+
+} );
 
 }
 
-maitre .emit ( 'unserved', request, response, error );
-
-} ) );
-
-}
-
-async #serve ( request, response ) {
+async serve ( request, response, order ) {
 
 const maitre = this;
 
 maitre .emit ( 'debug', 'Received a new request' );
 
-const method = request .method .toLowerCase ();
+const method = order ?.method || request .method .toLowerCase ();
 const { pathname } = new URL ( request .url, `${ request .headers .protocol }://${ request .headers .host }` );
 const location = [ ... pathname .split ( '/' ) .filter ( direction => direction ), method ];
+const details = order ?.details;
 
-maitre .emit ( 'debug', 'Providing service at location:', pathname, location );
+maitre .emit ( 'debug', `Providing service at location: service.${ location .join ( '.' ) }` );
 
 let service;
 
 try {
 
-service = maitre .service ( ... location, request, response );
+service = maitre .service ( ... location, { request, response, details } );
 
 } catch ( error ) {
 
@@ -98,6 +127,7 @@ throw MaitreError ();
 
 }
 
+if ( response instanceof OutgoingMessage )
 maitre .provide ( service, response );
 
 }
@@ -171,6 +201,22 @@ response .end ( body, encoding );
 }
 
 maitre .emit ( 'debug', 'Response provided successfully' );
+
+}
+
+unserve ( request, response, error ) {
+
+const maitre = this;
+
+if ( ! ( error instanceof MaitreError ) ) {
+
+maitre .emit ( 'error', error .stack );
+
+error = MaitreError ();
+
+}
+
+maitre .emit ( 'unserved', request, response, error );
 
 }
 

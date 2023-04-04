@@ -14,8 +14,9 @@
   "bugs": "https://github.com/faddymichel/maitre/issues",
   "license": "MIT",
   "type": "module",
-  "bin": "cli.js",
+  "bin": "cli/index.js",
   "dependencies": {
-    "@faddymichel/shell": "^1.1.2"
+    "@faddymichel/shell": "^1.1.2",
+    "ws": "^8.13.0"
   }
 }

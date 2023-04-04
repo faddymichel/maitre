@@ -1,35 +1,28 @@
-#!/usr/bin/env node
-
-import Maitre from './index.js';
-import Scenarist from '@faddymichel/scenarist';
+import Maitre from '../index.js';
 import Shell from '@faddymichel/shell';
+import { sep as separator } from 'path';
 
-const $ = Scenarist ( { script: {
+export default {
 
-path: './service.js',
+[ Symbol .for ( 'maitre/shell/environment' ) ]: {
 
-[ '$--path' ] ( path, ... scenario ) {
-
-this .path = path;
-
-return $ ( ... scenario );
+port: 1313
 
 },
 
-port: 1313,
+[ Symbol .for ( 'maitre/shell/select' ) ] ( ... options ) {
 
-[ '$--port' ] ( port, ... scenario ) {
+const $ = this;
+const { setting: shell } = $ ( Symbol .for ( 'scenarist/details' ) );
 
-this .port = isNaN ( port ) ? this .port : port;
-
-$ ( ... scenario );
+return Object .assign ( shell [ Symbol .for ( 'maitre/shell/environment' ) ], ... $ ( ... options ) );
 
 },
 
-async $ () {
+async [ Symbol .for ( 'maitre/shell/main' ) ] ( path = 'service.js' ) {
 
-const { path, port } = this;
-const { default: script } = await import ( `${ process .cwd () }/${ path }` );
+const { setting: shell } = this ( Symbol .for ( 'scenarist/details' ) );
+const { default: script } = await import ( path .startsWith ( separator ) ? path : `${ process .cwd () }/${ path }` );
 const service = new Shell () [ Symbol .for ( 'shell/interpreter' ) ] ( script );
 const maitre = new Maitre ( { service } );
 
@@ -67,18 +60,9 @@ body: error .toString () + '\n'
 
 }, response ) );
 
+const { port } = shell [ Symbol .for ( 'maitre/shell/environment' ) ];
+
 maitre .listen ( parseInt ( port ) );
 
 }
-
-} } );
-
-try {
-
-await $ ( ... process .argv .slice ( 2 ), '' );
-
-} catch ( error ) {
-
-console .error ( error );
-
-}
+};
