@@ -13,7 +13,7 @@ port: 1313
 [ Symbol .for ( 'maitre/shell/select' ) ] ( ... options ) {
 
 const $ = this;
-const { setting: shell } = $ ( Symbol .for ( 'scenarist/details' ) );
+const { setting: shell } = $ ( Symbol .for ( 'play/details' ) );
 
 return Object .assign ( shell [ Symbol .for ( 'maitre/shell/environment' ) ], ... $ ( ... options ) );
 
@@ -21,9 +21,9 @@ return Object .assign ( shell [ Symbol .for ( 'maitre/shell/environment' ) ], ..
 
 async [ Symbol .for ( 'maitre/shell/main' ) ] ( path = 'service.js' ) {
 
-const { setting: shell } = this ( Symbol .for ( 'scenarist/details' ) );
+const { setting: shell } = this ( Symbol .for ( 'play/details' ) );
 const { default: script } = await import ( path .startsWith ( separator ) ? path : `${ process .cwd () }/${ path }` );
-const service = new Shell () [ Symbol .for ( 'shell/interpreter' ) ] ( script );
+const service = new Shell ( script ) [ Symbol .for ( 'shell/play' ) ];
 const maitre = new Maitre ( { service } );
 
 for ( const level of Maitre .logLevel ) {

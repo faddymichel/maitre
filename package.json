@@ -1,7 +1,8 @@
 {
   "name": "@faddymichel/maitre",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "NodeJS Middleware Server",
+  "main": "index.js",
   "author": "Faddy Violette Michel <faddy.michel@gmail.com>",
   "keywords": [
     "http",
@@ -16,7 +17,7 @@
   "type": "module",
   "bin": "cli/index.js",
   "dependencies": {
-    "@faddymichel/shell": "^1.1.2",
+    "@faddymichel/shell": "^1.1.3",
     "ws": "^8.13.0"
   }
 }
